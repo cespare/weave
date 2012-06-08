@@ -1,0 +1,3 @@
+# Gossamer
+
+Simple parallel ssh.
