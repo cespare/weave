@@ -19,4 +19,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "vagrant"
   gem.add_development_dependency "scope"
   gem.add_development_dependency "rake"
+  # For generating the docs
+  gem.add_development_dependency "yard"
+  gem.add_development_dependency "redcarpet"
 end
