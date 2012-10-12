@@ -25,5 +25,4 @@ Simple parallel ssh.
 
 ## To do:
 
-* Method-level documentation
 * Full readme with detailed usage
