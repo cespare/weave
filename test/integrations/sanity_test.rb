@@ -28,7 +28,7 @@ class SanityTest < Scope::TestCase
     should "run some simple commands" do
       output = Hash.new { |h, k| h[k] = [] }
       Weave.connect(ROOT_AT_TEST_HOSTS) do
-        output[host] = run("echo 'hello'", :capture => true)
+        output[host] = run("echo 'hello'", :output => :capture)
       end
       TEST_HOSTS.each do |host|
         assert_empty output[host][:stderr]
@@ -41,7 +41,7 @@ class SanityTest < Scope::TestCase
         output = []
         Weave.connect(ROOT_AT_TEST_HOSTS, :serial => true) do
           command = (host == "weave1") ? "sleep 0.2; echo 'delayed'" : "echo 'on time'"
-          output += run(command, :capture => true)[:stdout]
+          output += run(command, :output => :capture)[:stdout]
         end
         assert_equal ["delayed\n", "on time\n"], output
       end
@@ -52,7 +52,7 @@ class SanityTest < Scope::TestCase
         output = []
         Weave.connect(ROOT_AT_TEST_HOSTS) do
           command = (host == "weave1") ? "sleep 0.2; echo 'delayed'" : "echo 'on time'"
-          result = run(command, :capture => true)
+          result = run(command, :output => :capture)
           output += result[:stdout]
         end
         assert_equal ["on time\n", "delayed\n"], output
@@ -63,7 +63,7 @@ class SanityTest < Scope::TestCase
       should "run basic commands" do
         output = Hash.new { |h, k| h[k] = [] }
         Weave.connect(ROOT_AT_TEST_HOSTS).execute do
-          output[host] = run("echo 'hello'", :capture => true)
+          output[host] = run("echo 'hello'", :output => :capture)
         end
         TEST_HOSTS.each do |host|
           assert_empty output[host][:stderr]
