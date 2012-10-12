@@ -20,6 +20,8 @@ def cleanup
   exit
 end
 
+trap("INT") { $pool.execute { run "\x03" } }
+
 while command = Readline.readline(">>> ", true)
   break unless command # ctrl-D
   command.chomp!

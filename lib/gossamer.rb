@@ -126,15 +126,28 @@ module Gossamer
 
     def run(command, options = {})
       @connection ||= Net::SSH.start(@host, @user)
-      @connection.exec(command) do |channel, stream, data|
-        if options[:raw]
-          out_stream = stream == :stdout ? STDOUT : STDERR
-          out_stream.print data
-          next
+      #@connection.exec(command) do |channel, stream, data|
+        ##channel.send_data("\x03")
+        #if options[:raw]
+          #out_stream = stream == :stdout ? STDOUT : STDERR
+          #out_stream.print data
+          #next
+        #end
+        #stream_colored = stream == :stdout ? Gossamer.color_string("out", :green) : Gossamer.color_string("err", :red)
+        #lines = data.split("\n").map { |line| "[#{stream_colored}|#{host}] #{line}" }.join("\n")
+        #@mutex.synchronize { puts lines }
+      #end
+      @connection.open_channel do |channel|
+        channel.request_pty
+        channel.exec(command) do |channel, success|
+          channel.on_data do |channel, data|
+            puts "stdout -> #{data}"
+            #channel.send_data("\x03\n")
+          end
+          channel.on_extended_data do |channel, type, data|
+            puts "stderr -> #{data}"
+          end
         end
-        stream_colored = stream == :stdout ? Gossamer.color_string("out", :green) : Gossamer.color_string("err", :red)
-        lines = data.split("\n").map { |line| "[#{stream_colored}|#{host}] #{line}" }.join("\n")
-        @mutex.synchronize { puts lines }
       end
       @connection.loop(0.1)
     end
