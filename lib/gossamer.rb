@@ -18,25 +18,6 @@ module Gossamer
   # private
   def self.color_string(string, color) "\e[01;#{COLORS[color]+30}m#{string}\e[m" end
 
-  def self.connect(host_list, options = {}, &block)
-    options[:num_threads] ||= DEFAULT_THREAD_POOL_SIZE
-    connections = host_list.reduce({}) { |pool, host| pool.merge(host => LazyConnection.new(host)) }
-    if options[:serial]
-      host_list.each { |host| connections[host].self_eval &block }
-    elsif options[:batch_by]
-      host_list.each_slice(options[:batch_by]) do |batch|
-        Gossamer.with_thread_pool(batch, options[:num_threads]) do |host, mutex|
-          connections[host].self_eval mutex, &block
-        end
-      end
-    else
-      Gossamer.with_thread_pool(host_list, options[:num_threads]) do |host, mutex|
-        connections[host].self_eval mutex, &block
-      end
-    end
-    connections.each_value(&:disconnect)
-  end
-
   # Spread work, identified by a key, across multiple threads.
   # private
   def self.with_thread_pool(keys, thread_pool_size, &block)
