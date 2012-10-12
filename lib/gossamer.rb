@@ -16,7 +16,7 @@ module Gossamer
   }
 
   # private
-  def self.color_string(string, color) "\033[01;#{COLORS[color]+30}m#{string}\e[m" end
+  def self.color_string(string, color) "\e[01;#{COLORS[color]+30}m#{string}\e[m" end
 
   def self.connect(host_list, options = {}, &block)
     options[:num_threads] ||= DEFAULT_THREAD_POOL_SIZE
@@ -110,9 +110,9 @@ module Gossamer
 
     # private
     def self_eval(mutex = nil, &block)
-      @mutex = mutex || @nil_mutex
+      @mutex = mutex || NilMutex.instance
       instance_eval &block
-      @mutex = @nil_mutex
+      @mutex = NilMutex.instance
     end
 
     attr_reader :user, :host
@@ -120,8 +120,7 @@ module Gossamer
     def initialize(host_string)
       @user, @host = LazyConnection.user_and_host(host_string)
       @connection = nil
-      @nil_mutex = NilMutex.instance
-      @mutex = @nil_mutex
+      @mutex = NilMutex.instance
     end
 
     def run(command, options = {})
@@ -132,7 +131,10 @@ module Gossamer
           out_stream.print data
           next
         end
-        stream_colored = stream == :stdout ? Gossamer.color_string("out", :green) : Gossamer.color_string("err", :red)
+        stream_colored = case stream
+                         when :stdout then Gossamer.color_string("out", :green)
+                         when :stderr then Gossamer.color_string("err", :red)
+                         end
         lines = data.split("\n").map { |line| "[#{stream_colored}|#{host}] #{line}" }.join("\n")
         @mutex.synchronize { puts lines }
       end

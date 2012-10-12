@@ -4,6 +4,4 @@ require "gossamer"
 
 pool = Gossamer.connect(ARGV) do
   run "ls"
-  run "sleep 3"
-  run "ls"
 end

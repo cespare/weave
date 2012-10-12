@@ -13,13 +13,6 @@ abort usage if ARGV.empty?
 $stty_state = `stty -g`.chomp
 $pool = Gossamer.connect(ARGV)
 
-def cleanup
-  $pool.disconnect!
-  `stty #{$stty_state}`
-  puts "Bye."
-  exit
-end
-
 while command = Readline.readline(">>> ", true)
   break unless command # ctrl-D
   command.chomp!
@@ -28,4 +21,6 @@ while command = Readline.readline(">>> ", true)
   $pool.execute { run command }
 end
 
-cleanup
+$pool.disconnect!
+`stty #{$stty_state}`
+puts "Bye."
