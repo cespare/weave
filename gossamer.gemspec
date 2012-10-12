@@ -15,6 +15,8 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = Gossamer::VERSION
 
-  # Vagrant is used for running integration tests.
+  # For running integration tests.
   gem.add_development_dependency "vagrant"
+  gem.add_development_dependency "scope"
+  gem.add_development_dependency "rake"
 end

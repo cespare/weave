@@ -125,7 +125,12 @@ module Gossamer
 
     def run(command, options = {})
       @connection ||= Net::SSH.start(@host, @user)
+      output = { :stderr => [], :stdout => [] }
       @connection.exec(command) do |channel, stream, data|
+        if options[:capture]
+          output[stream] << data
+          next
+        end
         if options[:raw]
           out_stream = stream == :stdout ? STDOUT : STDERR
           out_stream.print data
@@ -139,6 +144,7 @@ module Gossamer
         @mutex.synchronize { puts lines }
       end
       @connection.loop(0.1)
+      options[:capture] ? output : nil
     end
 
     # private

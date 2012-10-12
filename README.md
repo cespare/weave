@@ -5,13 +5,13 @@ Simple parallel ssh.
 ## Implemented features
 
 * Connection caching
-* Parallel execution (need thread/connection limit?)
+* Parallel execution (with thread/connection limit)
 * Serial execution
 * Commands:
 
   - `run`
 
-## Unimplemented features
+## Other ideas
 
 * Commands:
 
@@ -20,5 +20,10 @@ Simple parallel ssh.
   - `put`?
   - `get`?
 
-* Need to handle password prompts (maybe just sudo prompt)
-* Handle ctrl-c correctly
+* Handle password prompts (maybe just sudo prompt)
+* Handle ctrl-c correctly?
+
+## To do:
+
+* Method-level documentation
+* Full readme with detailed usage
