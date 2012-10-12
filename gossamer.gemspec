@@ -14,4 +14,7 @@ Gem::Specification.new do |gem|
   gem.name          = "gossamer"
   gem.require_paths = ["lib"]
   gem.version       = Gossamer::VERSION
+
+  # Vagrant is used for running integration tests.
+  gem.add_development_dependency "vagrant"
 end
