@@ -1,7 +1,7 @@
 $:.unshift File.join(File.dirname(__FILE__), "../lib")
 
 require "readline"
-require "gossamer"
+require "weave"
 
 usage = <<-EOS
 Usage:
@@ -11,7 +11,7 @@ EOS
 abort usage if ARGV.empty?
 
 $stty_state = `stty -g`.chomp
-$pool = Gossamer.connect(ARGV)
+$pool = Weave.connect(ARGV)
 
 while command = Readline.readline(">>> ", true)
   break unless command # ctrl-D

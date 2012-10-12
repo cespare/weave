@@ -2,7 +2,7 @@ require "net/ssh"
 require "thread"
 require "singleton"
 
-module Gossamer
+module Weave
   DEFAULT_THREAD_POOL_SIZE = 10
 
   # @private
@@ -78,12 +78,12 @@ module Gossamer
         @connections.each_key { |host| @connections[host].self_eval &block }
       elsif options[:batch_by]
         @connections.each_key.each_slice(options[:batch_by]) do |batch|
-          Gossamer.with_thread_pool(batch, options[:num_threads]) do |host, mutex|
+          Weave.with_thread_pool(batch, options[:num_threads]) do |host, mutex|
             @connections[host].self_eval mutex, &block
           end
         end
       else
-        Gossamer.with_thread_pool(@connections.keys, options[:num_threads]) do |host, mutex|
+        Weave.with_thread_pool(@connections.keys, options[:num_threads]) do |host, mutex|
           @connections[host].self_eval mutex, &block
         end
       end
@@ -135,8 +135,8 @@ module Gossamer
           out_stream.print data
         else
           stream_colored = case stream
-                           when :stdout then Gossamer.color_string("out", :green)
-                           when :stderr then Gossamer.color_string("err", :red)
+                           when :stdout then Weave.color_string("out", :green)
+                           when :stderr then Weave.color_string("err", :red)
                            end
           lines = data.split("\n").map { |line| "[#{stream_colored}|#{host}] #{line}" }.join("\n")
             @mutex.synchronize { puts lines }

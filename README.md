@@ -1,4 +1,4 @@
-# Gossamer
+# Weave
 
 Simple parallel ssh.
 

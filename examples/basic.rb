@@ -1,7 +1,7 @@
 $:.unshift File.join(File.dirname(__FILE__), "../lib")
 
-require "gossamer"
+require "weave"
 
-pool = Gossamer.connect(ARGV) do
+pool = Weave.connect(ARGV) do
   run "ls"
 end

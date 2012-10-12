@@ -5,15 +5,15 @@ Vagrant::Config.run do |config|
         "sudo mkdir -p /root/.ssh && sudo cp /home/vagrant/.ssh/authorized_keys /root/.ssh/"
   end
 
-  config.vm.define :gossamer1 do |config|
-    config.vm.host_name = "gossamer1"
+  config.vm.define :weave1 do |config|
+    config.vm.host_name = "weave1"
     config.vm.network :hostonly, "1.2.3.90"
     config.vm.forward_port 22, 3220 # ssh
     apply_common_config_options(config)
   end
 
-  config.vm.define :gossamer2 do |config|
-    config.vm.host_name = "gossamer2"
+  config.vm.define :weave2 do |config|
+    config.vm.host_name = "weave2"
     config.vm.network :hostonly, "1.2.3.91"
     config.vm.forward_port 22, 3221 #ssh
     apply_common_config_options(config)
