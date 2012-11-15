@@ -6,7 +6,7 @@ Gem::Specification.new do |gem|
   gem.email         = ["cespare@gmail.com"]
   gem.description   = %q{Simple parallel ssh.}
   gem.summary       = %q{Simple parallel ssh.}
-  gem.homepage      = ""
+  gem.homepage      = "https://github.com/cespare/weave"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
