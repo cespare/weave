@@ -5,10 +5,7 @@ module Weave
   DEFAULT_THREAD_POOL_SIZE = 10
 
   # @private
-  COLORS = {
-    red: 1,
-    green: 2,
-  }
+  COLORS = { :red => 1, :green => 2 }
 
   # Create a connection pool for an array of hosts. Each host must have a user specified (e.g.,
   # root@example.com). If a block is given, then the options are passed through to the underlying
