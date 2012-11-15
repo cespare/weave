@@ -1,6 +1,5 @@
 require "net/ssh"
 require "thread"
-require "singleton"
 
 module Weave
   DEFAULT_THREAD_POOL_SIZE = 10
@@ -94,8 +93,8 @@ module Weave
   end
 
   # @private
-  class NilMutex
-    include Singleton
+  module NilMutex
+    extend self
     def synchronize() yield end
   end
 
@@ -110,7 +109,7 @@ module Weave
     def initialize(host_string)
       @user, @host = self.class.user_and_host(host_string)
       @connection = nil
-      @mutex = NilMutex.instance
+      @mutex = NilMutex
     end
 
     # Run a command on this connection. This will open a connection if it's not already connected. The way the
@@ -157,9 +156,9 @@ module Weave
 
     # @private
     def self_eval(mutex = nil, &block)
-      @mutex = mutex || NilMutex.instance
+      @mutex = mutex || NilMutex
       instance_eval &block
-      @mutex = NilMutex.instance
+      @mutex = NilMutex
     end
 
     # Disconnect, if connected.
