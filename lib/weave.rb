@@ -27,7 +27,10 @@ module Weave
   end
 
   # @private
-  def self.color_string(string, color) "\e[01;#{COLORS[color]+30}m#{string}\e[m" end
+  def self.color_string(string, color)
+    return string unless STDOUT.isatty
+    "\e[01;#{COLORS[color]+30}m#{string}\e[m"
+  end
 
   # Spread work, identified by a key, across multiple threads.
   # @private
