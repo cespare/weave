@@ -8,12 +8,6 @@ module Weave
   COLORS = {
     red: 1,
     green: 2,
-    yellow: 3,
-    blue: 4,
-    magenta: 5,
-    cyan: 6,
-    white: 7,
-    default: 8
   }
 
   # Create a connection pool for an array of hosts. Each host must have a user specified (e.g.,
