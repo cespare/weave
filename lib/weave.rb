@@ -66,24 +66,26 @@ module Weave
     # Run a command over the connection pool. The block is evaluated in the context of LazyConnection.
     #
     # @param [Hash] options the various knobs
+    # @option options [Array] :args the arguments to pass through to the block when it runs.
     # @option options [Fixnum] :num_threads the number of concurrent threads to use to process this command.
     #     Defaults to `DEFAULT_THREAD_POOL_SIZE`.
     # @option options [Boolean] :serial whether to process the command for each connection one at a time.
     # @option options [Fixnum] :batch_by if set, group the connections into batches of no more than this value
     #     and fully process each batch before starting the next one.
     def execute(options = {}, &block)
+      args = options[:args] || []
       options[:num_threads] ||= DEFAULT_THREAD_POOL_SIZE
       if options[:serial]
-        @connections.each_key { |host| @connections[host].self_eval &block }
+        @connections.each_key { |host| @connections[host].self_eval args, &block }
       elsif options[:batch_by]
         @connections.each_key.each_slice(options[:batch_by]) do |batch|
           Weave.with_thread_pool(batch, options[:num_threads]) do |host, mutex|
-            @connections[host].self_eval mutex, &block
+            @connections[host].self_eval args, mutex, &block
           end
         end
       else
         Weave.with_thread_pool(@connections.keys, options[:num_threads]) do |host, mutex|
-          @connections[host].self_eval mutex, &block
+          @connections[host].self_eval args, mutex, &block
         end
       end
     end
@@ -151,7 +153,7 @@ module Weave
           channel.on_request("exit-status") do |_, data|
             code = data.read_long
             unless code.zero? || options[:continue_on_failure]
-              raise Error, "Command finished with exit status #{code}: #{command}"
+              raise Error, "[#{@host}] command finished with exit status #{code}: #{command}"
             end
             result[:exit_code] = code
           end
@@ -161,7 +163,7 @@ module Weave
             unless options[:continue_on_failure]
               signal_name = Signal.list.invert[signal]
               signal_message = signal_name ? "#{signal} (#{signal_name})" : "#{signal}"
-              raise Error, "Command received signal #{signal_message}: #{command}"
+              raise Error, "[#{@host}] command received signal #{signal_message}: #{command}"
             end
             result[:exit_signal] = signal
           end
@@ -199,9 +201,9 @@ module Weave
     end
 
     # @private
-    def self_eval(mutex = nil, &block)
+    def self_eval(args, mutex = nil, &block)
       @mutex = mutex || NilMutex
-      instance_eval &block
+      instance_exec(*args, &block)
       @mutex = NilMutex
     end
 
