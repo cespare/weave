@@ -114,6 +114,9 @@ module Weave
       @mutex = NilMutex
     end
 
+    # A thread-safe wrapper around Kernel.puts.
+    def puts(*args) @mutex.synchronize { Kernel.puts(*args) } end
+
     # Run a command on this connection. This will open a connection if it's not already connected. The way the
     # output is presented is determined by the option `:output`. The default, `:output => :pretty`, prints
     # each line of output with the name of the host and whether the output is stderr or stdout. If `:output =>
@@ -187,7 +190,7 @@ module Weave
                          when :stderr then Weave.color_string("err", :red)
                          end
         lines = data.split("\n").map { |line| "[#{stream_colored}|#{host}] #{line}" }.join("\n")
-        @mutex.synchronize { puts lines }
+        puts lines
       end
     end
 
