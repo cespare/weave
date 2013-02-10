@@ -122,10 +122,10 @@ module Weave
     # each line of output with the name of the host and whether the output is stderr or stdout. If `:output =>
     # :raw`, then the output will be passed as is directly back to `STDERR` or `STDOUT` as appropriate. If
     # `:output => :capture`, then this method puts the output into the result hash as
-    # `{ :stdout => [...], :stderr => [...] }`.
+    # `{ :stdout => "...", :stderr => "..." }`.
     #
     # The result of this method is a hash containing either `:exit_code` (if the command exited normally) or
-    # `:exit_signal` (if the command exited due to a signal). It also has `:stdout` and `:stderr` arrays, if
+    # `:exit_signal` (if the command exited due to a signal). It also has `:stdout` and `:stderr` strings, if
     # `option[:output]` was set to `:capture`.
     #
     # If the option `:continue_on_failure` is set to true, then this method will continue as normal if the
@@ -137,7 +137,7 @@ module Weave
     def run(command, options = {})
       options[:output] ||= :pretty
       @connection ||= Net::SSH.start(@host, @user)
-      result = options[:output] == :capture ? { :stdout => [], :stderr => [] } : {}
+      result = options[:output] == :capture ? { :stdout => "", :stderr => "" } : {}
       @connection.open_channel do |channel|
         channel.exec(command) do |_, success|
           unless success
