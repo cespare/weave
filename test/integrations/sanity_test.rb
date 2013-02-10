@@ -6,6 +6,7 @@ require "weave"
 class SanityTest < Scope::TestCase
   TEST_HOSTS = [1, 2].map { |i| "weave#{i}" }
   ROOT_AT_TEST_HOSTS = TEST_HOSTS.map { |host| "root@#{host}" }
+  SINGLE_TEST_HOST = ["root@#{TEST_HOSTS[0]}"]
 
   setup_once do
     # Make sure the machines are up.
@@ -34,6 +35,18 @@ class SanityTest < Scope::TestCase
         assert_empty output[host][:stderr]
         assert_equal ["hello\n"], output[host][:stdout]
       end
+    end
+
+    should "raise an exception when a command exits with non-zero exit status." do
+      assert_raises(Weave::Error) do
+        Weave.connect(SINGLE_TEST_HOST) { run("cd noexist", :output => :capture) }
+      end
+
+      results = {}
+      Weave.connect(SINGLE_TEST_HOST) do
+        results = run("exit 123", :output => :capture, :continue_on_failure => true)
+      end
+      assert_equal 123, results[:exit_code]
     end
 
     context "in serial" do

@@ -4,6 +4,9 @@ require "thread"
 module Weave
   DEFAULT_THREAD_POOL_SIZE = 10
 
+  # A Weave error.
+  class Error < StandardError; end
+
   # @private
   COLORS = { :red => 1, :green => 2 }
 
@@ -14,6 +17,9 @@ module Weave
   #
   # @see ConnectionPool#execute
   def self.connect(host_list, options = {}, &block)
+    unless host_list.is_a? Array
+      raise Weave::Error, "Must pass an array for host_list. Received: #{host_list.inspect}"
+    end
     pool = ConnectionPool.new(host_list)
     if block_given?
       pool.execute(options, &block)
@@ -110,33 +116,77 @@ module Weave
     # output is presented is determined by the option `:output`. The default, `:output => :pretty`, prints
     # each line of output with the name of the host and whether the output is stderr or stdout. If `:output =>
     # :raw`, then the output will be passed as is directly back to `STDERR` or `STDOUT` as appropriate. If
-    # `:output => :capture`, then this method returns the output in a hash of the form
+    # `:output => :capture`, then this method puts the output into the result hash as
     # `{ :stdout => [...], :stderr => [...] }`.
+    #
+    # The result of this method is a hash containing either `:exit_code` (if the command exited normally) or
+    # `:exit_signal` (if the command exited due to a signal). It also has `:stdout` and `:stderr` arrays, if
+    # `option[:output]` was set to `:capture`.
+    #
+    # If the option `:continue_on_failure` is set to true, then this method will continue as normal if the
+    # command terminated via a signal or with a non-zero exit status. Otherwise (the default), these will
+    # cause a `Weave::Error` to be raised.
     #
     # @param [Hash] options the output options
     # @option options [Symbol] :output the output format
     def run(command, options = {})
       options[:output] ||= :pretty
       @connection ||= Net::SSH.start(@host, @user)
-      output = { :stderr => [], :stdout => [] }
-      @connection.exec(command) do |channel, stream, data|
-        case options[:output]
-        when :capture
-          output[stream] << data
-        when :raw
-          out_stream = stream == :stdout ? STDOUT : STDERR
-          out_stream.print data
-        else
-          stream_colored = case stream
-                           when :stdout then Weave.color_string("out", :green)
-                           when :stderr then Weave.color_string("err", :red)
-                           end
-          lines = data.split("\n").map { |line| "[#{stream_colored}|#{host}] #{line}" }.join("\n")
-            @mutex.synchronize { puts lines }
+      result = options[:output] == :capture ? { :stdout => [], :stderr => [] } : {}
+      @connection.open_channel do |channel|
+        channel.exec(command) do |_, success|
+          unless success
+            raise Error, "Could not run ssh command: #{command}"
+          end
+
+          channel.on_data do |_, data|
+            append_or_print_output(result, data, :stdout, options)
+          end
+
+          channel.on_extended_data do |_, type, data|
+            next unless type == 1
+            append_or_print_output(result, data, :stderr, options)
+          end
+
+          channel.on_request("exit-status") do |_, data|
+            code = data.read_long
+            unless code.zero? || options[:continue_on_failure]
+              raise Error, "Command finished with exit status #{code}: #{command}"
+            end
+            result[:exit_code] = code
+          end
+
+          channel.on_request("exit-signal") do |_, data|
+            signal = data.read_long
+            unless options[:continue_on_failure]
+              signal_name = Signal.list.invert[signal]
+              signal_message = signal_name ? "#{signal} (#{signal_name})" : "#{signal}"
+              raise Error, "Command received signal #{signal_message}: #{command}"
+            end
+            result[:exit_signal] = signal
+          end
         end
       end
-      @connection.loop(0.1)
-      (options[:output] == :capture) ? output : nil
+      @connection.loop(0.05)
+      result
+    end
+
+    # @private
+    def append_or_print_output(result, data, stream, options)
+      case options[:output]
+      when :capture
+        result[stream] << data
+      when :raw
+        out_stream = stream == :stdout ? STDOUT : STDERR
+        out_stream.print data
+      else
+        stream_colored = case stream
+                         when :stdout then Weave.color_string("out", :green)
+                         when :stderr then Weave.color_string("err", :red)
+                         end
+        lines = data.split("\n").map { |line| "[#{stream_colored}|#{host}] #{line}" }.join("\n")
+        @mutex.synchronize { puts lines }
+      end
     end
 
     # @private
