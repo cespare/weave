@@ -22,19 +22,3 @@ examples (in `examples/`) to get started.
 * Commands:
 
   - `run`
-
-## Other ideas
-
-* Commands:
-
-  - `sudo`
-  - `rsync`
-  - `put`?
-  - `get`?
-
-* Handle password prompts (maybe just sudo prompt)
-* Handle ctrl-c correctly?
-
-## To do:
-
-* Full readme with detailed usage
