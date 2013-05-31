@@ -10,7 +10,7 @@ class SanityTest < Scope::TestCase
 
   setup_once do
     # Make sure the machines are up.
-    vagrant_status = `/usr/bin/vagrant status`
+    vagrant_status = `vagrant status`
     unless $?.to_i.zero? && TEST_HOSTS.each { |host| vagrant_status =~ /#{host}\w+running/ }
       abort "You need to set up the test vagrant virtual machines to run the sanity test." \
             "Run 'vagrant up'."
