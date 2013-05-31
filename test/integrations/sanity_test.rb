@@ -10,7 +10,7 @@ class SanityTest < Scope::TestCase
 
   setup_once do
     # Make sure the machines are up.
-    vagrant_status = `vagrant status`
+    vagrant_status = `/usr/bin/vagrant status`
     unless $?.to_i.zero? && TEST_HOSTS.each { |host| vagrant_status =~ /#{host}\w+running/ }
       abort "You need to set up the test vagrant virtual machines to run the sanity test." \
             "Run 'vagrant up'."
@@ -82,6 +82,16 @@ class SanityTest < Scope::TestCase
           assert_empty output[host][:stderr]
           assert_equal "hello\n", output[host][:stdout]
         end
+      end
+    end
+
+    context "with a different host list" do
+      should "run only on the listed hosts" do
+        output = ""
+        Weave::ConnectionPool.new.execute_with(SINGLE_TEST_HOST) do
+          output += run("echo 'hello'", :output => :capture)[:stdout]
+        end
+        assert_equal "hello\n", output
       end
     end
   end

@@ -58,8 +58,10 @@ module Weave
 
   # A pool of SSH connections. Operations over the pool may be performed in serial or in parallel.
   class ConnectionPool
-    # @param [Array] host_list the array of hosts, of the form user@host
-    def initialize(host_list)
+    # @param [Array] host_list the array of hosts, of the form user@host. You may leave off this argument, and
+    # use #execute_with (instead of #execute) to specify the whole list of hosts each time.
+    def initialize(host_list = [])
+      @hosts = host_list
       @connections = host_list.reduce({}) { |pool, host| pool.merge(host => LazyConnection.new(host)) }
     end
 
@@ -73,18 +75,25 @@ module Weave
     # @option options [Fixnum] :batch_by if set, group the connections into batches of no more than this value
     #     and fully process each batch before starting the next one.
     def execute(options = {}, &block)
+      execute_with(@hosts, options, &block)
+    end
+
+    # This is the same as #execute, except that host_list overrides the list of connections with which this
+    # ConnectionPool was initialized. Any hosts in here that weren't already in the pool will be added.
+    def execute_with(host_list, options = {}, &block)
+      host_list.each { |host| @connections[host] ||= LazyConnection.new(host) }
       args = options[:args] || []
       options[:num_threads] ||= DEFAULT_THREAD_POOL_SIZE
       if options[:serial]
-        @connections.each_key { |host| @connections[host].self_eval args, &block }
+        host_list.each { |host| @connections[host].self_eval args, &block }
       elsif options[:batch_by]
-        @connections.each_key.each_slice(options[:batch_by]) do |batch|
+        host_list.each_slice(options[:batch_by]) do |batch|
           Weave.with_thread_pool(batch, options[:num_threads]) do |host, mutex|
             @connections[host].self_eval args, mutex, &block
           end
         end
       else
-        Weave.with_thread_pool(@connections.keys, options[:num_threads]) do |host, mutex|
+        Weave.with_thread_pool(host_list, options[:num_threads]) do |host, mutex|
           @connections[host].self_eval args, mutex, &block
         end
       end
