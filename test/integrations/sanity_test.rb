@@ -33,7 +33,7 @@ class SanityTest < Scope::TestCase
       end
       TEST_HOSTS.each do |host|
         assert_empty output[host][:stderr]
-        assert_equal ["hello\n"], output[host][:stdout]
+        assert_equal "hello\n", output[host][:stdout]
       end
     end
 
@@ -51,24 +51,24 @@ class SanityTest < Scope::TestCase
 
     context "in serial" do
       should "run some commands in the expected order" do
-        output = []
+        output = ""
         Weave.connect(ROOT_AT_TEST_HOSTS, :serial => true) do
           command = (host == "weave1") ? "sleep 0.2; echo 'delayed'" : "echo 'on time'"
           output += run(command, :output => :capture)[:stdout]
         end
-        assert_equal ["delayed\n", "on time\n"], output
+        assert_equal "delayed\non time\n", output
       end
     end
 
     context "in parallel" do
       should "run some commands in the expected order" do
-        output = []
+        output = ""
         Weave.connect(ROOT_AT_TEST_HOSTS) do
           command = (host == "weave1") ? "sleep 0.2; echo 'delayed'" : "echo 'on time'"
           result = run(command, :output => :capture)
           output += result[:stdout]
         end
-        assert_equal ["on time\n", "delayed\n"], output
+        assert_equal "on time\ndelayed\n", output
       end
     end
 
@@ -80,7 +80,7 @@ class SanityTest < Scope::TestCase
         end
         TEST_HOSTS.each do |host|
           assert_empty output[host][:stderr]
-          assert_equal ["hello\n"], output[host][:stdout]
+          assert_equal "hello\n", output[host][:stdout]
         end
       end
     end
