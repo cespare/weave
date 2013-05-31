@@ -10,17 +10,17 @@ class SanityTest < Scope::TestCase
 
   setup_once do
     # Make sure the machines are up.
-    vagrant_status = `bundle exec vagrant status`
+    vagrant_status = `vagrant status`
     unless $?.to_i.zero? && TEST_HOSTS.each { |host| vagrant_status =~ /#{host}\w+running/ }
       abort "You need to set up the test vagrant virtual machines to run the sanity test." \
-            "Run 'bundle exec vagrant up'."
+            "Run 'vagrant up'."
     end
     # Make sure the user's ssh config has weave entries.
     TEST_HOSTS.each do |host|
       config = Net::SSH::Config.load("~/.ssh/config", host)
       unless config["hostname"] == "127.0.0.1"
         abort "You need to add weave{1,2} to your ~/.ssh/config." \
-              "You can use the output of 'bundle exec vagrant ssh-config weave1'"
+              "You can use the output of 'vagrant ssh-config weave1'"
       end
     end
   end

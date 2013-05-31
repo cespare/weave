@@ -18,7 +18,6 @@ Gem::Specification.new do |gem|
   gem.add_dependency "net-ssh", ">= 2.2.0"
 
   # For running integration tests.
-  gem.add_development_dependency "vagrant", "~> 1.0.5"
   gem.add_development_dependency "scope"
   gem.add_development_dependency "rake"
   # For generating the docs
