@@ -18,7 +18,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency "net-ssh", ">= 2.2.0"
 
   # For running integration tests.
-  gem.add_development_dependency "scope"
+  gem.add_development_dependency "minitest"
   gem.add_development_dependency "rake"
   # For generating the docs
   gem.add_development_dependency "yard"
