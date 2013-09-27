@@ -69,8 +69,8 @@ module Weave
     #
     # @param [Hash] options the various knobs
     # @option options [Array] :args the arguments to pass through to the block when it runs.
-    # @option options [Fixnum] :num_threads the number of concurrent threads to use to process this command.
-    #     Defaults to `DEFAULT_THREAD_POOL_SIZE`.
+    # @option options [Fixnum or Symbol] :num_threads the number of concurrent threads to use to process this
+    #     command, or :unlimited to use a thread for every host. Defaults to `DEFAULT_THREAD_POOL_SIZE`.
     # @option options [Boolean] :serial whether to process the command for each connection one at a time.
     # @option options [Fixnum] :batch_by if set, group the connections into batches of no more than this value
     #     and fully process each batch before starting the next one.
@@ -83,17 +83,19 @@ module Weave
     def execute_with(host_list, options = {}, &block)
       host_list.each { |host| @connections[host] ||= LazyConnection.new(host) }
       args = options[:args] || []
-      options[:num_threads] ||= DEFAULT_THREAD_POOL_SIZE
+      num_threads = options[:num_threads] || DEFAULT_THREAD_POOL_SIZE
       if options[:serial]
         host_list.each { |host| @connections[host].self_eval args, &block }
       elsif options[:batch_by]
+        num_threads = options[:batch_by] if num_threads == :unlimited
         host_list.each_slice(options[:batch_by]) do |batch|
-          Weave.with_thread_pool(batch, options[:num_threads]) do |host, mutex|
+          Weave.with_thread_pool(batch, num_threads) do |host, mutex|
             @connections[host].self_eval args, mutex, &block
           end
         end
       else
-        Weave.with_thread_pool(host_list, options[:num_threads]) do |host, mutex|
+        num_threads = host_list.size if num_threads == :unlimited
+        Weave.with_thread_pool(host_list, num_threads) do |host, mutex|
           @connections[host].self_eval args, mutex, &block
         end
       end
