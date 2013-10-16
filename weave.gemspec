@@ -7,6 +7,7 @@ Gem::Specification.new do |gem|
   gem.description   = %q{Simple parallel ssh.}
   gem.summary       = %q{Simple parallel ssh.}
   gem.homepage      = "https://github.com/cespare/weave"
+  gem.license       = "MIT"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
