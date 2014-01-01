@@ -1,5 +1,6 @@
 require "net/ssh"
 require "thread"
+require "timeout"
 
 module Weave
   DEFAULT_THREAD_POOL_SIZE = 10
@@ -143,47 +144,71 @@ module Weave
     # command terminated via a signal or with a non-zero exit status. Otherwise (the default), these will
     # cause a `Weave::Error` to be raised.
     #
+    # The option `:timeout`, if provided, specifies the number of seconds to allow the command to execute
+    # before timing it out. If this happens, the output is unchanged (but in most cases, this will be an error
+    # as your process was killed by a signal from the pseudo-tty Weave allocates for it on the remote host).
+    # If the command is timed out, the result hash also has `:timed_out => true` (is is `false` otherwise).
+    #
     # @param [Hash] options the output options
     # @option options [Symbol] :output the output format
+    # @option options [Symbol] :continue_on_failure whether to raise an exception if the command exits with a
+    #     non-zero exit status or because of a signal
+    # @option options[Symbol] :timeout if given, how many seconds to give the command before timing it out
     def run(command, options = {})
       options[:output] ||= :pretty
       @connection ||= Net::SSH.start(@host, @user)
       result = options[:output] == :capture ? { :stdout => "", :stderr => "" } : {}
+      result[:timed_out] = false
       @connection.open_channel do |channel|
-        channel.exec(command) do |_, success|
-          unless success
-            raise Error, "Could not run ssh command: #{command}"
-          end
-
-          channel.on_data do |_, data|
-            append_or_print_output(result, data, :stdout, options)
-          end
-
-          channel.on_extended_data do |_, type, data|
-            next unless type == 1
-            append_or_print_output(result, data, :stderr, options)
-          end
-
-          channel.on_request("exit-status") do |_, data|
-            code = data.read_long
-            unless code.zero? || options[:continue_on_failure]
-              raise Error, "[#{@host}] command finished with exit status #{code}: #{command}"
+        channel.request_pty do |ch, success|
+          raise Error, "Error requesting pty" unless success
+          ch.exec(command) do |_, succ|
+            unless succ
+              raise Error, "Could not run ssh command: #{command}"
             end
-            result[:exit_code] = code
-          end
 
-          channel.on_request("exit-signal") do |_, data|
-            signal = data.read_long
-            unless options[:continue_on_failure]
-              signal_name = Signal.list.invert[signal]
-              signal_message = signal_name ? "#{signal} (#{signal_name})" : "#{signal}"
-              raise Error, "[#{@host}] command received signal #{signal_message}: #{command}"
+            ch.on_data do |_, data|
+              append_or_print_output(result, data, :stdout, options)
             end
-            result[:exit_signal] = signal
+
+            ch.on_extended_data do |_, type, data|
+              next unless type == 1
+              append_or_print_output(result, data, :stderr, options)
+            end
+
+            ch.on_request("exit-status") do |_, data|
+              code = data.read_long
+              unless code.zero? || options[:continue_on_failure]
+                raise Error, "[#{@host}] command finished with exit status #{code}: #{command}"
+              end
+              result[:exit_code] = code
+            end
+
+            ch.on_request("exit-signal") do |_, data|
+              signal = data.read_long
+              unless options[:continue_on_failure]
+                signal_name = Signal.list.invert[signal]
+                signal_message = signal_name ? "#{signal} (#{signal_name})" : "#{signal}"
+                raise Error, "[#{@host}] command received signal #{signal_message}: #{command}"
+              end
+              result[:exit_signal] = signal
+            end
           end
         end
       end
-      @connection.loop(0.05)
+      if options[:timeout].nil?
+        @connection.loop(0.05)
+      else
+        begin
+          Timeout.timeout(options[:timeout]) do
+            @connection.loop(0.05)
+          end
+        rescue Timeout::Error
+          @connection.close
+          @connection = nil
+          result[:timed_out] = true
+        end
+      end
       result
     end
 
@@ -207,7 +232,7 @@ module Weave
 
     # @private
     def self.user_and_host(host_string)
-      user, at, host = host_string.rpartition("@")
+      user, _, host = host_string.rpartition("@")
       if [user, host].any? { |part| part.nil? || part.empty? }
         raise "Bad hostname (needs to be of the form user@host): #{host_string}"
       end
