@@ -10,9 +10,8 @@ Put `weave` in your Gemfile or install directly:
 
 ## Documentation
 
-[Method docs here](http://rubydoc.info/github/cespare/weave/master/frames). Usage docs coming soon. See the
-examples (in `examples/`) to get started.
-
+[Method docs here](http://rubydoc.info/github/cespare/weave/master/frames). See the examples (in `examples/`)
+to get started.
 
 ## Implemented features
 
@@ -22,3 +21,9 @@ examples (in `examples/`) to get started.
 * Commands:
 
   - `run`
+
+## Tests
+
+You need vagrant installed. `vagrant up` to get the machines running. Then:
+
+    $ bundle exec rake test

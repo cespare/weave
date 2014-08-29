@@ -11,16 +11,18 @@ module Weave
   COLORS = { :red => 1, :green => 2 }
 
   # Create a connection pool for an array of hosts. Each host must have a user specified (e.g.,
-  # root@example.com). If a block is given, then the options are passed through to the underlying
-  # ConnectionPool and the block is immediately run in the context of each connection. Otherwise, a pool is
-  # returned.
+  # root@example.com). If the key :net_ssh_options is present in options, then the value is a hash of options
+  # that is passed directly to Net::SSH.start. If a block is given, then the options (except for
+  # :net_ssh_options)  are passed through to the underlying ConnectionPool and the block is immediately run in
+  # the context of each connection. Otherwise, a pool is returned.
   #
   # @see ConnectionPool#execute
   def self.connect(host_list, options = {}, &block)
     unless host_list.is_a? Array
       raise Weave::Error, "Must pass an array for host_list. Received: #{host_list.inspect}"
     end
-    pool = ConnectionPool.new(host_list)
+    net_ssh_options = options.delete(:net_ssh_options)
+    pool = ConnectionPool.new(host_list, net_ssh_options)
     if block_given?
       pool.execute(options, &block)
       pool.disconnect!
@@ -60,9 +62,12 @@ module Weave
   class ConnectionPool
     # @param [Array] host_list the array of hosts, of the form user@host. You may leave off this argument, and
     # use #execute_with (instead of #execute) to specify the whole list of hosts each time.
-    def initialize(host_list = [])
+    def initialize(host_list = [], net_ssh_options = {})
       @hosts = host_list
-      @connections = host_list.reduce({}) { |pool, host| pool.merge(host => LazyConnection.new(host)) }
+      @net_ssh_options = net_ssh_options
+      @connections = host_list.reduce({}) do |pool, host|
+        pool.merge(host => LazyConnection.new(host, @net_ssh_options))
+      end
     end
 
     # Run a command over the connection pool. The block is evaluated in the context of LazyConnection.
@@ -81,7 +86,7 @@ module Weave
     # This is the same as #execute, except that host_list overrides the list of connections with which this
     # ConnectionPool was initialized. Any hosts in here that weren't already in the pool will be added.
     def execute_with(host_list, options = {}, &block)
-      host_list.each { |host| @connections[host] ||= LazyConnection.new(host) }
+      host_list.each { |host| @connections[host] ||= LazyConnection.new(host, @net_ssh_options) }
       args = options[:args] || []
       num_threads = options[:num_threads] || DEFAULT_THREAD_POOL_SIZE
       if options[:serial]
@@ -119,9 +124,10 @@ module Weave
     attr_reader :host
 
     # @param [String] host_string the host of the form user@host
-    def initialize(host_string)
+    def initialize(host_string, net_ssh_options = {})
       @user, @host = self.class.user_and_host(host_string)
       @connection = nil
+      @net_ssh_options = net_ssh_options || {}
       @mutex = NilMutex
     end
 
@@ -147,7 +153,7 @@ module Weave
     # @option options [Symbol] :output the output format
     def run(command, options = {})
       options[:output] ||= :pretty
-      @connection ||= Net::SSH.start(@host, @user)
+      @connection ||= Net::SSH.start(@host, @user, @net_ssh_options)
       result = options[:output] == :capture ? { :stdout => "", :stderr => "" } : {}
       @connection.open_channel do |channel|
         channel.exec(command) do |_, success|
@@ -207,7 +213,7 @@ module Weave
 
     # @private
     def self.user_and_host(host_string)
-      user, at, host = host_string.rpartition("@")
+      user, _, host = host_string.rpartition("@")
       if [user, host].any? { |part| part.nil? || part.empty? }
         raise "Bad hostname (needs to be of the form user@host): #{host_string}"
       end

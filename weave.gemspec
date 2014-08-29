@@ -16,12 +16,12 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = Weave::VERSION
 
-  gem.add_dependency "net-ssh", ">= 2.2.0"
+  gem.add_dependency "net-ssh", "~> 2.9"
 
   # For running integration tests.
-  gem.add_development_dependency "minitest"
-  gem.add_development_dependency "rake"
+  gem.add_development_dependency "minitest", "~> 5.0"
+  gem.add_development_dependency "rake", "~> 10.0"
   # For generating the docs
-  gem.add_development_dependency "yard"
-  gem.add_development_dependency "redcarpet"
+  gem.add_development_dependency "yard", "~> 0.8"
+  gem.add_development_dependency "redcarpet", "~> 3.0"
 end
