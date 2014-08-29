@@ -1,6 +1,3 @@
-# -*- encoding: utf-8 -*-
-require File.expand_path('../lib/weave/version', __FILE__)
-
 Gem::Specification.new do |gem|
   gem.authors       = ["Caleb Spare"]
   gem.email         = ["cespare@gmail.com"]
@@ -14,7 +11,7 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.name          = "weave"
   gem.require_paths = ["lib"]
-  gem.version       = Weave::VERSION
+  gem.version       = "1.1.0-beta1"
 
   gem.add_dependency "net-ssh", "~> 2.9"
 
